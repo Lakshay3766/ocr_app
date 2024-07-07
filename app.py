@@ -21,6 +21,9 @@ st.set_page_config(page_title="OCR Text Extractor", page_icon="🔒", layout="ce
 # Header
 st.title("OCR Text Extractor")
 
+# Language selection
+language_option = st.selectbox("Choose OCR Language", ["Automatic Detection", "English", "Hindi"])
+
 # OCR service selection
 st.markdown("### Select OCR Services to Use:")
 use_tesseract = st.checkbox("Tesseract", value=True)
@@ -126,9 +129,14 @@ if uploaded_image is not None:
     st.write("Extracted Text:")
     with st.spinner('Processing...'):
         try:
-            detected_language = detect_language(pytesseract.image_to_string(image, lang='hin+eng'))
-            lang_code = map_language_code(detected_language)
-            
+            if language_option == "Automatic Detection":
+                detected_language = detect_language(pytesseract.image_to_string(image, lang='hin+eng'))
+                lang_code = map_language_code(detected_language)
+            elif language_option == "English":
+                lang_code = "eng"
+            elif language_option == "Hindi":
+                lang_code = "hin"
+
             ocr_texts = []
             ocr_text = ""
 
