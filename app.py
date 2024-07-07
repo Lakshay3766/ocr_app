@@ -21,6 +21,13 @@ st.set_page_config(page_title="OCR Text Extractor", page_icon="🔒", layout="ce
 # Header
 st.title("OCR Text Extractor")
 
+# OCR service selection
+st.markdown("### Select OCR Services to Use:")
+use_tesseract = st.checkbox("Tesseract", value=True)
+use_azure = st.checkbox("Azure", value=False)
+use_google = st.checkbox("Google", value=False)
+use_combined = st.checkbox("Combined", value=False)
+
 # File uploader for image
 uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
 
@@ -122,25 +129,33 @@ if uploaded_image is not None:
             detected_language = detect_language(pytesseract.image_to_string(image, lang='hin+eng'))
             lang_code = map_language_code(detected_language)
             
+            ocr_texts = []
+            ocr_text = ""
+
             # OCR using Tesseract
-            tesseract_text = get_tesseract_text(image, lang=lang_code)
-            
+            if use_tesseract:
+                tesseract_text = get_tesseract_text(image, lang=lang_code)
+                ocr_texts.append(tesseract_text)
+                st.text_area("Tesseract OCR Result", tesseract_text, height=150)
+
             # OCR using Azure
-            azure_text = get_azure_text(image_stream)
-            image_stream.seek(0)  # Reset stream for Google OCR
+            if use_azure:
+                azure_text = get_azure_text(image_stream)
+                ocr_texts.append(azure_text)
+                st.text_area("Azure OCR Result", azure_text, height=150)
+                image_stream.seek(0)  # Reset stream for next OCR
 
             # OCR using Google
-            google_text = get_google_text(image_stream)
+            if use_google:
+                google_text = get_google_text(image_stream)
+                ocr_texts.append(google_text)
+                st.text_area("Google OCR Result", google_text, height=150)
+                image_stream.seek(0)  # Reset stream for next OCR
 
-            # Combine results
-            ocr_results = [tesseract_text, azure_text, google_text]
-            combined_result = combine_ocr_results(ocr_results)
-
-            # Display individual and combined results
-            st.text_area("Tesseract OCR Result", tesseract_text, height=150)
-            st.text_area("Azure OCR Result", azure_text, height=150)
-            st.text_area("Google OCR Result", google_text, height=150)
-            st.text_area("Combined OCR Result", combined_result, height=150)
+            # Combine results if the combined checkbox is selected
+            if use_combined and ocr_texts:
+                combined_result = combine_ocr_results(ocr_texts)
+                st.text_area("Combined OCR Result", combined_result, height=150)
 
             if uploaded_text is not None:
                 # Read the ground truth text
@@ -148,15 +163,21 @@ if uploaded_image is not None:
                 st.text_area("Ground Truth Text", ground_truth_text, height=200)
 
                 # Calculate accuracy for each OCR result
-                tesseract_accuracy = calculate_similarity(tesseract_text, ground_truth_text)
-                azure_accuracy = calculate_similarity(azure_text, ground_truth_text)
-                google_accuracy = calculate_similarity(google_text, ground_truth_text)
-                combined_accuracy = calculate_similarity(combined_result, ground_truth_text)
+                if use_tesseract:
+                    tesseract_accuracy = calculate_similarity(tesseract_text, ground_truth_text)
+                    st.write(f"Tesseract Accuracy: {tesseract_accuracy * 100:.2f}%")
 
-                st.write(f"Tesseract Accuracy: {tesseract_accuracy * 100:.2f}%")
-                st.write(f"Azure Accuracy: {azure_accuracy * 100:.2f}%")
-                st.write(f"Google Accuracy: {google_accuracy * 100:.2f}%")
-                st.write(f"Combined Accuracy: {combined_accuracy * 100:.2f}%")
+                if use_azure:
+                    azure_accuracy = calculate_similarity(azure_text, ground_truth_text)
+                    st.write(f"Azure Accuracy: {azure_accuracy * 100:.2f}%")
+
+                if use_google:
+                    google_accuracy = calculate_similarity(google_text, ground_truth_text)
+                    st.write(f"Google Accuracy: {google_accuracy * 100:.2f}%")
+
+                if use_combined:
+                    combined_accuracy = calculate_similarity(combined_result, ground_truth_text)
+                    st.write(f"Combined Accuracy: {combined_accuracy * 100:.2f}%")
 
         except Exception as e:
             st.error(f"Error processing image: {e}")
