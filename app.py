@@ -11,6 +11,9 @@ from google.auth.exceptions import DefaultCredentialsError
 from io import BytesIO
 from langdetect import detect, DetectorFactory
 
+# Set the TESSDATA_PREFIX environment variable
+os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__), 'tessdata')
+
 # Ensure uploads directory exists
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
