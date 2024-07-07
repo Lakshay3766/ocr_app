@@ -1,0 +1,7 @@
+streamlit
+pytesseract
+Pillow
+azure-cognitiveservices-vision-computervision
+msrest
+google-cloud-vision
+langdetect
