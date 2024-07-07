@@ -11,9 +11,6 @@ from google.auth.exceptions import DefaultCredentialsError
 from io import BytesIO
 from langdetect import detect, DetectorFactory
 
-# Set up the Tesseract executable path (adjust if necessary)
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
 # Ensure uploads directory exists
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
