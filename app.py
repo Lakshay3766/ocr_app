@@ -21,9 +21,6 @@ st.set_page_config(page_title="OCR Text Extractor", page_icon="🔒", layout="ce
 # Header
 st.title("OCR Text Extractor")
 
-# OCR service selection
-ocr_service = st.selectbox("Choose OCR Service", ["Tesseract", "Azure", "Google"])
-
 # File uploader for image
 uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
 
@@ -31,7 +28,7 @@ uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "png", "jpe
 uploaded_text = st.file_uploader("Upload ground truth text file (optional)...", type=["txt"])
 
 # Azure OCR setup
-azure_subscription_key = st.text_input("Enter Azure Subscription Key (optional)")
+azure_subscription_key = st.text_input("Enter Azure Subscription Key (optional)", type="password")
 azure_endpoint = st.text_input("Enter Azure Endpoint (optional)")
 if azure_subscription_key and azure_endpoint:
     computervision_client = ComputerVisionClient(azure_endpoint, CognitiveServicesCredentials(azure_subscription_key))
@@ -48,8 +45,8 @@ except DefaultCredentialsError:
 # Set seed for consistent language detection results
 DetectorFactory.seed = 0
 
-def calculate_similarity(ocr_text, ground_truth_text):
-    similarity = SequenceMatcher(None, ocr_text, ground_truth_text).ratio()
+def calculate_similarity(text1, text2):
+    similarity = SequenceMatcher(None, text1, text2).ratio()
     return similarity
 
 def get_tesseract_text(image, lang):
@@ -99,6 +96,16 @@ def map_language_code(detected_language):
     else:
         return "eng"  # default to English if unknown
 
+def combine_ocr_results(results):
+    """
+    Combine OCR results from different services and select the most appropriate text.
+    """
+    # Simple voting mechanism: select the most common result
+    from collections import Counter
+    common_result = Counter(results).most_common(1)[0][0]
+    
+    return common_result
+
 if uploaded_image is not None:
     image = Image.open(uploaded_image)
     st.image(image, caption='Uploaded Image', use_column_width=True)
@@ -112,26 +119,45 @@ if uploaded_image is not None:
     st.write("Extracted Text:")
     with st.spinner('Processing...'):
         try:
-            ocr_text = ""
-            if ocr_service == "Tesseract":
-                detected_language = detect_language(pytesseract.image_to_string(image, lang='hin+eng'))
-                lang_code = map_language_code(detected_language)
-                ocr_text = get_tesseract_text(image, lang=lang_code)
-            elif ocr_service == "Azure":
-                ocr_text = get_azure_text(image_stream)
-            elif ocr_service == "Google":
-                ocr_text = get_google_text(image_stream)
+            detected_language = detect_language(pytesseract.image_to_string(image, lang='hin+eng'))
+            lang_code = map_language_code(detected_language)
+            
+            # OCR using Tesseract
+            tesseract_text = get_tesseract_text(image, lang=lang_code)
+            
+            # OCR using Azure
+            azure_text = get_azure_text(image_stream)
+            image_stream.seek(0)  # Reset stream for Google OCR
 
-            st.text_area("OCR Result", ocr_text, height=200)
+            # OCR using Google
+            google_text = get_google_text(image_stream)
+
+            # Combine results
+            ocr_results = [tesseract_text, azure_text, google_text]
+            combined_result = combine_ocr_results(ocr_results)
+
+            # Display individual and combined results
+            st.text_area("Tesseract OCR Result", tesseract_text, height=150)
+            st.text_area("Azure OCR Result", azure_text, height=150)
+            st.text_area("Google OCR Result", google_text, height=150)
+            st.text_area("Combined OCR Result", combined_result, height=150)
 
             if uploaded_text is not None:
                 # Read the ground truth text
                 ground_truth_text = uploaded_text.read().decode('utf-8')
                 st.text_area("Ground Truth Text", ground_truth_text, height=200)
 
-                # Calculate accuracy
-                similarity = calculate_similarity(ocr_text, ground_truth_text)
-                st.write(f"Accuracy: {similarity * 100:.2f}%")
+                # Calculate accuracy for each OCR result
+                tesseract_accuracy = calculate_similarity(tesseract_text, ground_truth_text)
+                azure_accuracy = calculate_similarity(azure_text, ground_truth_text)
+                google_accuracy = calculate_similarity(google_text, ground_truth_text)
+                combined_accuracy = calculate_similarity(combined_result, ground_truth_text)
+
+                st.write(f"Tesseract Accuracy: {tesseract_accuracy * 100:.2f}%")
+                st.write(f"Azure Accuracy: {azure_accuracy * 100:.2f}%")
+                st.write(f"Google Accuracy: {google_accuracy * 100:.2f}%")
+                st.write(f"Combined Accuracy: {combined_accuracy * 100:.2f}%")
+
         except Exception as e:
             st.error(f"Error processing image: {e}")
 
