@@ -1,7 +1,5 @@
 streamlit
-pytesseract
-Pillow
-azure-cognitiveservices-vision-computervision
-msrest
-google-cloud-vision
-langdetect
+opencv-python
+opencv-python-headless
+moviepy
+ffmpeg-python
