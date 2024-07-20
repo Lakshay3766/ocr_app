@@ -1,14 +1,5 @@
 streamlit
-<<<<<<< HEAD
 opencv-python
 opencv-python-headless
 moviepy
 ffmpeg-python
-=======
-pytesseract
-Pillow
-azure-cognitiveservices-vision-computervision
-msrest
-google-cloud-vision
-langdetect
->>>>>>> c1841429f36a1e744fd4e919a7e8556fc9f5e702
